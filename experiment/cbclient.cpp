@@ -4,11 +4,14 @@
 //	Build using:
 //		g++ -std=c++0x -Wall -o cbclient cbclient.cpp -lws2_32
 
+#define _WIN32_WINNT 0x501
+
 #include <iostream>
 #include <string>
 #include <stdexcept>
+
 #include <winsock2.h>
-// #include <winsock.h>
+#include <ws2tcpip.h>
 
 using namespace std;
 
@@ -28,49 +31,6 @@ public:
 
 };
 
-//// LookupAddress /////////////////////////////////////////////////////
-// Given an address string, determine if it's a dotted-quad IP address
-// or a domain address.  If the latter, ask DNS to resolve it.  In
-// either case, return resolved IP address.  If we fail, we return
-// INADDR_NONE.
-u_long LookupAddress(const char* pcHost)
-{
-    u_long nRemoteAddr = inet_addr(pcHost);
-    if (nRemoteAddr == INADDR_NONE) {
-        // pcHost isn't a dotted IP, so resolve it through DNS
-        hostent* pHE = gethostbyname(pcHost);
-        if (pHE == 0) {
-            return INADDR_NONE;
-        }
-        nRemoteAddr = *((u_long*)pHE->h_addr_list[0]);
-    }
-
-    return nRemoteAddr;
-}
-
-
-//// EstablishConnection ///////////////////////////////////////////////
-// Connects to a given address, on a given port, both of which must be
-// in network byte order.  Returns newly-connected socket if we succeed,
-// or INVALID_SOCKET if we fail.
-SOCKET EstablishConnection(u_long nRemoteAddr, u_short nPort)
-{
-    // Create a stream socket
-    // SOCKET sd = socket(AF_INET, SOCK_STREAM, 0);
-    SOCKET sd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    if (sd != INVALID_SOCKET) {
-        SOCKADDR_IN sinRemote;
-        sinRemote.sin_family = AF_INET;
-        sinRemote.sin_addr.s_addr = nRemoteAddr;
-        sinRemote.sin_port = nPort;
-        if (connect(sd, (sockaddr*)&sinRemote, sizeof(sockaddr_in)) ==
-                SOCKET_ERROR) {
-            sd = INVALID_SOCKET;
-        }
-    }
-
-    return sd;
-}
 
 //// ShutdownConnection ////////////////////////////////////////////////
 // Gracefully shuts the connection sd down.  Returns true if we're
@@ -117,35 +77,81 @@ bool ShutdownConnection(SOCKET sd)
 }
 
 
+void dump_addrinfo(addrinfo *result) {
+
+    for (addrinfo *ptr = result; ptr != NULL; ptr = ptr->ai_next)
+    {
+        cout << "ptr->ai_flags = " << ptr->ai_flags << '\n';
+        cout << "ptr->ai_family = " << ptr->ai_family << '\n';
+        cout << "ptr->ai_socktype = " << ptr->ai_socktype << '\n';
+        cout << "ptr->ai_protocol = " << ptr->ai_protocol << '\n';
+        cout << "ptr->ai_addrlen = " << ptr->ai_addrlen << '\n';
+        cout << "ptr->ai_canonname = " << ptr->ai_canonname << '\n';
+    }
+}
+
+SOCKET connect_to_CB_server(const char* hostname, const char* port) {
+
+    //  Try to resolve server address
+    // ADDRINFO Hints, *AddrInfo, *AI;
+    addrinfo hints;
+    memset(&hints, 0, sizeof (addrinfo));
+    hints.ai_family = PF_UNSPEC;
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_protocol = IPPROTO_TCP;
+
+    addrinfo *result = NULL;
+    int ret_val = getaddrinfo(hostname, port, &hints, &result);
+    if (ret_val != 0) {
+        cerr << "Cannot resolve address " << hostname << "and port " << port << ", error " << ret_val << '\n';
+        return INVALID_SOCKET;
+    }
+
+    // dump_addrinfo(result);
+    SOCKET s = INVALID_SOCKET;
+    for (addrinfo *ptr = result; ptr != NULL; ptr = ptr->ai_next) {
+        s = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
+        if(s == INVALID_SOCKET) {
+            cerr << "socket() failed. WSAGetLastError() says:" << WSAGetLastError() << '\n';
+        }
+        else {
+            //  Try to connect
+            if(connect(s, ptr->ai_addr, ptr->ai_addrlen) != SOCKET_ERROR) {
+                break;
+            }
+            else {
+                cerr << "connect() failed. WSAGetLastError() says:" << WSAGetLastError() << '\n';
+                closesocket(s);
+                s = INVALID_SOCKET;
+            }
+        }
+    }
+
+    freeaddrinfo(result);
+
+    return s;
+}
+
+
 int main() {
 
 	WASDataWrapper wsaData;
 
 	//	Connect to a Chatterbox server
 	string host = "localhost";
-	u_short port = 20000;
+	string port = "20000";
 
-    u_long remote_addr = LookupAddress(host.c_str());
-    if (remote_addr == INADDR_NONE) {
-        cerr << "Could not detremine remote host address." ;
-        return 1;
-    }
+    cout << "Attempting to connect to Chatterbox server at, " << host << ":" << port << '\n'; 
 
-    cout << "remote_addr=" << remote_addr << '\n';
-    in_addr address;
-    memcpy(&address, &remote_addr, sizeof(u_long)); 
-    cout << "Connecting to Chatterbox server at, " << inet_ntoa(address) << ":" << port << endl; 
+    SOCKET sd = connect_to_CB_server(host.c_str(), port.c_str());
 
-
-	// Create a stream socket
-	SOCKET sd = EstablishConnection(remote_addr, port);
 	if(sd == INVALID_SOCKET) {
 		cout << "Could not connect to Chatterbox server\n";
     	cerr << "WSAGetLastError() says:" << WSAGetLastError() << '\n';
 		return 1;
 	}
 
-	cout << "Connected to Chatterbox server!";
+	cout << "Connected to Chatterbox server!\n";
 
 	//	Let user enter an id
 	//	auto userID = "";
@@ -161,15 +167,15 @@ int main() {
 	//	Wait for threads to exit
 
 	// Shut connection down
-	cout << "Disconnectiong from Chatterbox server.\n";
+	cout << "Disconnecting from Chatterbox server.\n";
 	if (ShutdownConnection(sd)) {
-	    cout << "Disconnected successfully.\n" << endl;
+	    cout << "Disconnected successfully.\n";
 	}
 	else {
 	    cout << "Problem disconnecting.\n";
 	}
 
-	cout << "Exiting Chatterbox client." << endl;
+	cout << "Exiting Chatterbox client.\n";
 
 	return 0;
 }
