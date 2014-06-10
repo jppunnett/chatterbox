@@ -37,8 +37,7 @@ public:
 // successful, false otherwise.
 bool ShutdownConnection(SOCKET sd)
 {
-	const int kBufferSize = 1024;
-	// const int SD_SEND = 1;
+	const int DEFAULT_BUF_SIZE = 1024;
 
     // Disallow any further data sends.  This will tell the other side
     // that we want to go away now.  If we skip this step, we don't
@@ -52,9 +51,9 @@ bool ShutdownConnection(SOCKET sd)
     // acknowledges the TCP control packet sent by the shutdown above.
     // Then we'll get a 0 back from recv, signalling that the remote
     // host has closed its side of the connection.
-    char acReadBuffer[kBufferSize];
+    char acReadBuffer[DEFAULT_BUF_SIZE];
     while (1) {
-        int nNewBytes = recv(sd, acReadBuffer, kBufferSize, 0);
+        int nNewBytes = recv(sd, acReadBuffer, DEFAULT_BUF_SIZE, 0);
         if (nNewBytes == SOCKET_ERROR) {
             return false;
         }
@@ -132,6 +131,10 @@ SOCKET connect_to_CB_server(const char* hostname, const char* port) {
     return s;
 }
 
+//  Reads all data from a socket up to and excluding newline character
+string socket_gets(SOCKET s) {
+    return "";
+}
 
 int main() {
 
@@ -153,10 +156,12 @@ int main() {
 
 	cout << "Connected to Chatterbox server!\n";
 
-	//	Let user enter an id
-	//	auto userID = "";
-	//	userID << cin;
+    //  Display the Chatterbox welcome message.
 
+
+	//	Let user enter an id
+    string msg_to_send;
+    getline (cin, msg_to_send);
 	//	Send the user ID
 	//	socket.send(userID);
 
