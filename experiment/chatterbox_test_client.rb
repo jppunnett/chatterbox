@@ -17,18 +17,18 @@ session.puts userid
 sender = Thread.new do
   puts "Start chatting!"
   loop do
-    msg = STDIN.gets.chomp
-    session.puts msg
-    break if msg == "bye"
+    msg_to_send = STDIN.gets.chomp
+    session.puts msg_to_send
+    break if msg_to_send == "bye"
   end
   puts "sender thread ending..."
 end
 
 listener = Thread.new do
   loop do
-    msg = session.gets.chomp
-    puts msg
-    break if msg == "bye"
+    msg_recvd = session.gets.chomp
+    puts msg_recvd
+    break if msg_recvd == "bye"
   end
   puts "listener thread ending..."
 end
