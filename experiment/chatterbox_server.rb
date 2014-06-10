@@ -6,13 +6,16 @@
 #   Add a message to a conversation
 
 require "socket"
-require "chatter"
-require "conversation"
+require_relative "chatter"
+require_relative "conversation"
 
 # A TCP/IP based server for Chatterbox.
 class ChatterboxServer
 
   def initialize(host, port)
+    @host = host
+    @port = port
+
     @server = TCPServer.new(host, port)
 
     # For now, there's only a single conversation going on
@@ -20,7 +23,7 @@ class ChatterboxServer
   end
 
   def start
-    puts "Chatterbox server started on port 20000"
+    puts "Chatterbox server started on port #{@port}."
 
     loop do
       puts "Waiting for incoming client requests."
@@ -38,21 +41,28 @@ class ChatterboxServer
   private
 
     def handle_client_connect(client)
+
+      client.puts "Hello! Welcome to Chatterbox. Please enter a user ID."
       chatter_id = client.gets.chomp
+      puts "#{chatter_id} connected."
+
       # TODO: Validate chatter ID
+      chatter = Chatter.new(chatter_id, client)
+
       # TODO: Probably need to serialize access to @convo
-      @convo.add_chatter(Chatter.new(chatter_id, client))
+      @convo.add_chatter(chatter)
 
       # Wait for messages from chatter and propagate to everyone in the conversation
       loop do
-        msg = client.gets.chomp
         #TODO: Need to figure out when chatter wants to leave
-        @convo.propogate_msg(msg)
+        msg = client.gets.chomp
+        @convo.add_msg(msg, chatter)
       end
     end
 
 end
 
+Thread.abort_on_exception = true
 
 chatter_box_server = ChatterboxServer.new("localhost", 20000)
 chatter_box_server.start
