@@ -1,6 +1,8 @@
 //	Simple Chatterbox client written in C++
 //	Many of the functions are taken from the excellent Winsock FAQ at
 //		http://tangentsoft.net/wskfaq/
+//	Build using:
+//		g++ -std=c++0x -Wall -o cbclient cbclient.cpp -lws2_32
 
 #include <iostream>
 #include <string>
