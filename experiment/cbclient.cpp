@@ -9,6 +9,7 @@
 #include <iostream>
 #include <string>
 #include <stdexcept>
+#include <thread>
 
 #include <winsock2.h>
 #include <ws2tcpip.h>
@@ -155,6 +156,14 @@ int socket_puts(SOCKET s, const string& to_send) {
     return bytes_sent;
 }
 
+void send_messages(SOCKET s) {
+
+}
+
+void listen_for_messages(SOCKET s) {
+
+}
+
 int main() {
 
 	WASDataWrapper wsaData;
@@ -180,17 +189,19 @@ int main() {
     cout << msg_recvd << '\n';
 
 	//	Let user enter an id
-    string msg_to_send;
-    getline(cin, msg_to_send);
+    string user_id;
+    getline(cin, user_id);
 
 	//	Send the user ID
-    socket_puts(sd, msg_to_send);
+    socket_puts(sd, user_id);
 
 	//	Create a sender thread and listener thread
-	//	Start listener thread
-	//	Start sender thread
+    std::thread sender_th {send_messages, sd};
+    std::thread receiver_th {listen_for_messages, sd};
 
-	//	Wait for threads to exit
+    //  Wait for threads to exit
+    sender_th.join();
+    receiver_th.join();
 
 	// Shut connection down
 	cout << "Disconnecting from Chatterbox server.\n";
