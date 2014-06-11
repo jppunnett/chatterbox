@@ -15,6 +15,8 @@
 
 using namespace std;
 
+//  Default buffer size for reading socket data.
+const int DEFAULT_BUF_SIZE = 1024;
 
 class WASDataWrapper {
 	WSADATA wsaData_;
@@ -37,8 +39,6 @@ public:
 // successful, false otherwise.
 bool ShutdownConnection(SOCKET sd)
 {
-	const int DEFAULT_BUF_SIZE = 1024;
-
     // Disallow any further data sends.  This will tell the other side
     // that we want to go away now.  If we skip this step, we don't
     // shut the connection down nicely.
@@ -133,7 +133,26 @@ SOCKET connect_to_CB_server(const char* hostname, const char* port) {
 
 //  Reads all data from a socket up to and excluding newline character
 string socket_gets(SOCKET s) {
-    return "";
+
+    char buffer[DEFAULT_BUF_SIZE];
+    int bytes_read = recv(s, buffer, DEFAULT_BUF_SIZE, 0);
+    if (bytes_read == SOCKET_ERROR) {
+        throw runtime_error("recv() failed.");
+    }
+    cout << "bytes_read = " << bytes_read << '\n';
+
+    return string(buffer);
+}
+
+int socket_puts(SOCKET s, const string& to_send) {
+
+    int bytes_sent = send(s, to_send.c_str(), to_send.length(), 0);
+    if (bytes_sent == SOCKET_ERROR) {
+        throw runtime_error("send() failed.");
+    }
+    cout << "bytes_sent = " << bytes_sent << '\n';
+
+    return bytes_sent;
 }
 
 int main() {
@@ -157,13 +176,15 @@ int main() {
 	cout << "Connected to Chatterbox server!\n";
 
     //  Display the Chatterbox welcome message.
-
+    string msg_recvd = socket_gets(sd);
+    cout << msg_recvd << '\n';
 
 	//	Let user enter an id
     string msg_to_send;
-    getline (cin, msg_to_send);
+    getline(cin, msg_to_send);
+
 	//	Send the user ID
-	//	socket.send(userID);
+    socket_puts(sd, msg_to_send);
 
 	//	Create a sender thread and listener thread
 	//	Start listener thread
