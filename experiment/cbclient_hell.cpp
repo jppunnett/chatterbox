@@ -60,7 +60,7 @@ bool ShutdownConnection(SOCKET sd)
         }
         else if (nNewBytes != 0) {
             cerr << endl << "FYI, received " << nNewBytes <<
-                    " unexpected bytes during shutdown." << endl;
+            " unexpected bytes during shutdown." << endl;
         }
         else {
             // Okay, we're done!
@@ -176,43 +176,43 @@ int main() {
 
     SOCKET sd = connect_to_CB_server(host.c_str(), port.c_str());
 
-	if(sd == INVALID_SOCKET) {
-		cout << "Could not connect to Chatterbox server\n";
-    	cerr << "WSAGetLastError() says:" << WSAGetLastError() << '\n';
-		return 1;
-	}
+    if(sd == INVALID_SOCKET) {
+      cout << "Could not connect to Chatterbox server\n";
+      cerr << "WSAGetLastError() says:" << WSAGetLastError() << '\n';
+      return 1;
+  }
 
-	cout << "Connected to Chatterbox server!\n";
+  cout << "Connected to Chatterbox server!\n";
 
     //  Display the Chatterbox welcome message.
-    string msg_recvd = socket_gets(sd);
-    cout << msg_recvd << '\n';
+  string msg_recvd = socket_gets(sd);
+  cout << msg_recvd << '\n';
 
 	//	Let user enter an id
-    string user_id;
-    getline(cin, user_id);
+  string user_id;
+  getline(cin, user_id);
 
 	//	Send the user ID
-    socket_puts(sd, user_id);
+  socket_puts(sd, user_id);
 
 	//	Create a sender thread and listener thread
-    std::thread sender_th {send_messages, sd};
-    std::thread receiver_th {listen_for_messages, sd};
+  std::thread sender_th {send_messages, sd};
+  std::thread receiver_th {listen_for_messages, sd};
 
     //  Wait for threads to exit
-    sender_th.join();
-    receiver_th.join();
+  sender_th.join();
+  receiver_th.join();
 
 	// Shut connection down
-	cout << "Disconnecting from Chatterbox server.\n";
-	if (ShutdownConnection(sd)) {
-	    cout << "Disconnected successfully.\n";
-	}
-	else {
-	    cout << "Problem disconnecting.\n";
-	}
+  cout << "Disconnecting from Chatterbox server.\n";
+  if (ShutdownConnection(sd)) {
+   cout << "Disconnected successfully.\n";
+}
+else {
+   cout << "Problem disconnecting.\n";
+}
 
-	cout << "Exiting Chatterbox client.\n";
+cout << "Exiting Chatterbox client.\n";
 
-	return 0;
+return 0;
 }
