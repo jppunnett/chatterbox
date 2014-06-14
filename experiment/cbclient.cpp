@@ -1,8 +1,22 @@
 //	Simple Chatterbox client written in C++
-//	Uses boost 1.55.
-//	To build on Windows, we used the excellent MinGW Distro from nuwen.net
-//	http://nuwen.net/mingw.html:
-//		g++ -std=c++0x -Wall -o cbclient cbclient_boost.cpp -lboost_thread -lboost_system -lws2_32
+//	Depends on boost 1.55 and MinGW.
+//	
+//	To build on Windows 64-bit systems, we used the excellent MinGW Distro
+//	from nuwen.net. Build command is:
+//		g++ -std=c++0x -Wall -o cbclient cbclient.cpp -lboost_thread -lboost_system -lws2_32
+//
+//	When building on Windows XP SP3, define NTDDI_VERSION=0x05010300.
+//	The build command becomes:
+//		g++ -std=c++0x -Wall -DNTDDI_VERSION=0x05010300 -o cbclient cbclient.cpp -lboost_thread -lboost_system -lws2_32
+//
+//	If you are not using the MinGW Distro from nuwen.net, you'll need to
+//	build the Boost libraries yourself. This could possibly be a difficult 
+//	but worthy task. Be strong.
+//	
+//	Caution when building Boost 1.55 under MinGW on XP. You SHOULD convert the build.bat
+//	from Unix line endings to DOS line endings and you MUST ensure that the TMP and
+//	TEMP user variables do not point to directories names that have spaces in them.
+//
 //	Usage:
 //		cbclient <chatterbox-host> [<chatterbox-port>]
 //		Default chatterbox-port is 20000
