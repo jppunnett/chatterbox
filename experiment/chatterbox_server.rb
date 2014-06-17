@@ -25,15 +25,20 @@ class ChatterboxServer
   def start
     puts "Chatterbox server started on port #{@port}."
 
-    loop do
-      puts "Waiting for incoming client requests."
+    begin
+      loop do
+        puts "Waiting for incoming client requests."
 
-      Thread.start(@server.accept) do |client|
-        handle_client_connect(client)
+        Thread.start(@server.accept) do |client|
+          handle_client_connect(client)
+        end
       end
+    rescue Interrupt => e
+      puts "Program interrupted. Exiting gracefully."
+    ensure
+      server.close
     end
 
-    server.close
     puts "Chatterbox server stopped"
   end
 
