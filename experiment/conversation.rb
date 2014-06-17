@@ -6,9 +6,14 @@ class Conversation
     @chatters = Hash.new
   end
 
-  def add_chatter(chatter)
+  def add_chatter(chatter_to_add)
     # TODO: Ad error handling for detecting duplicate insertion.
-    @chatters[chatter.id] = chatter
+    @chatters[chatter_to_add.id] = chatter_to_add
+  end
+
+  def remove_chatter(chatter_to_remove)
+    puts "Removing #{chatter_to_remove.id} from conversation"
+    @chatters.delete_if { |chatter_id, chatter| chatter_id == chatter_to_remove.id }
   end
 
   # Send the message to every chatter in the convo

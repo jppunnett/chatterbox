@@ -57,12 +57,20 @@ class ChatterboxServer
         #TODO: Need to figure out when chatter wants to leave
         msg = client.gets.chomp
         @convo.add_msg(msg, chatter)
+        if msg == "bye"
+          client.puts "bye"
+          break
+        end
       end
+      
+      @convo.remove_chatter(chatter)
+      client.close
+
     end
 
 end
 
 Thread.abort_on_exception = true
 
-chatter_box_server = ChatterboxServer.new("localhost", 20000)
+chatter_box_server = ChatterboxServer.new("0.0.0.0", 20000)
 chatter_box_server.start

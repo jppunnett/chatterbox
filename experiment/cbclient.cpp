@@ -82,12 +82,9 @@ int main(int argc, char* argv[]) {
 		//	Let user enter an id
 		string user_id;
 		getline(cin, user_id);
-		user_id += '\n';
 
 		//	Send the user ID
-		socket_puts(socket, user_id);
-
-		cout << done_chatting << endl;
+		socket_puts(socket, user_id+'\n');
 
 		boost::thread listen_thread(do_listen, boost::ref(socket));
 		boost::thread talk_thread(do_talk, boost::ref(socket));
@@ -103,31 +100,43 @@ int main(int argc, char* argv[]) {
 }
 
 void do_listen(tcp::socket& socket) {
-	cout << "In do_listen()" << endl;
+	// cout << "In do_listen()" << endl;
+	
 	while(!get_done_chatting()) {
-		string msg_received = socket_gets(socket);
-		cout << '<' << chomp(msg_received) << '>' << endl;
 
-		if(msg_received == "bye") {
-			set_done_chatting();
+		string msg_received = socket_gets(socket);
+
+		if(!msg_received.empty()) {
+			// cout << '[' << msg_received << ']';
+			cout << msg_received << endl;
+			if(msg_received == "bye")
+				set_done_chatting();
 		}
+
 	}
+
+	// cout << "Leaving do_listen()" << endl;
 }
 
 void do_talk(tcp::socket& socket) {
-	cout << "In do_talk()" << endl;
+	// cout << "In do_talk()" << endl;
+
 	while(!get_done_chatting()) {
+
 		string msg_to_send;
 		getline(cin, msg_to_send);
-		msg_to_send += '\n';
 
-		socket_puts(socket, msg_to_send);
-
-		if(chomp(msg_to_send) == "bye") {
-			set_done_chatting();
+		if(!msg_to_send.empty()) {
+			socket_puts(socket, msg_to_send+'\n');
+			if(msg_to_send == "bye") {
+				set_done_chatting();
+			}
 		}
 	}
+
+	// cout << "Leaving do_talk()" << endl;
 }
+
 
 void put_to_stream(ostream& o, const string& s) {
 	boost::lock_guard<boost::mutex> guard(output_mtx);
@@ -164,20 +173,20 @@ string socket_gets(tcp::socket& socket) {
 
 	std::array<char, 512> buf; 
 	boost::system::error_code error;
-	
 	size_t len = socket.read_some(boost::asio::buffer(buf), error);
 	if(error)
 		throw boost::system::system_error(error);
 
+	// cout << "socket_gets(), len=" << len << '\n';
+
 	std::stringstream ss;
 	ss.write(buf.data(), len);
-	return ss.str();
+	return chomp(ss.str());
 }
 
 
 void socket_puts(tcp::socket& socket, const string& msg) {
-	// boost::system::error_code ignored_error;
-	boost::asio::write(socket, boost::asio::buffer(msg) /*, ignored_error*/);
+	boost::asio::write(socket, boost::asio::buffer(msg));
 }
 
 
