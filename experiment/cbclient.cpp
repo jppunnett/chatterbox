@@ -15,7 +15,7 @@
 //	
 //	Caution when building Boost 1.55 under MinGW on XP. You SHOULD convert the build.bat
 //	from Unix line endings to DOS line endings and you MUST ensure that the TMP and
-//	TEMP user variables do not point to directories names that have spaces in them.
+//	TEMP user variables do not point to directory names that have spaces in them.
 //
 //	Usage:
 //		cbclient <chatterbox-host> [<chatterbox-port>]
@@ -29,6 +29,7 @@
 #include <boost/thread.hpp>
 #include <boost/asio.hpp>
 
+using std::ostream;
 using std::cout;
 using std::cin;
 using std::cerr;
@@ -41,7 +42,18 @@ using boost::asio::ip::tcp;
 bool get_cmdline_args(int argc, char* argv[], string &host, string &port);
 string socket_gets(tcp::socket& socket);
 void socket_puts(tcp::socket& socket, const string& msg);
+void do_listen(tcp::socket& socket);
+void do_talk(tcp::socket& socket);
+string chomp(const string& s);
+void put_to_stream(ostream& o, const string& s);
 
+//	Ugh, I know, global variables, but this will change. We're experimenting
+//		for now.
+bool done_chatting = false;
+boost::mutex done_chatting_mtx;
+boost::mutex output_mtx;
+bool get_done_chatting();
+void set_done_chatting();
 
 int main(int argc, char* argv[]) {
 
@@ -70,19 +82,81 @@ int main(int argc, char* argv[]) {
 		//	Let user enter an id
 		string user_id;
 		getline(cin, user_id);
+		user_id += '\n';
 
 		//	Send the user ID
 		socket_puts(socket, user_id);
 
-		//	Say goodbye
-		socket_puts(socket, "bye");
+		cout << done_chatting << endl;
+
+		boost::thread listen_thread(do_listen, boost::ref(socket));
+		boost::thread talk_thread(do_talk, boost::ref(socket));
+
+		listen_thread.join();
+		talk_thread.join();
 	}
 	catch (std::exception& e) {
 		cerr << e.what() << endl;
 	}
 
-	//boost::thread t;
 	return 0;
+}
+
+void do_listen(tcp::socket& socket) {
+	cout << "In do_listen()" << endl;
+	while(!get_done_chatting()) {
+		string msg_received = socket_gets(socket);
+		cout << '<' << chomp(msg_received) << '>' << endl;
+
+		if(msg_received == "bye") {
+			set_done_chatting();
+		}
+	}
+}
+
+void do_talk(tcp::socket& socket) {
+	cout << "In do_talk()" << endl;
+	while(!get_done_chatting()) {
+		string msg_to_send;
+		getline(cin, msg_to_send);
+		msg_to_send += '\n';
+
+		socket_puts(socket, msg_to_send);
+
+		if(chomp(msg_to_send) == "bye") {
+			set_done_chatting();
+		}
+	}
+}
+
+void put_to_stream(ostream& o, const string& s) {
+	boost::lock_guard<boost::mutex> guard(output_mtx);
+	o << s;
+}
+
+
+string chomp(const string& s) {
+	
+	const std::string whitespaces (" \t\f\v\n\r");
+	string chomped = s;
+
+	std::size_t found = chomped.find_last_not_of(whitespaces);
+	if (found != std::string::npos)
+		chomped.erase(found+1);
+	else
+		chomped.clear();
+
+	return chomped;
+}
+
+bool get_done_chatting() {
+	boost::lock_guard<boost::mutex> guard(done_chatting_mtx);
+	return done_chatting;
+}
+
+void set_done_chatting() {
+	boost::lock_guard<boost::mutex> guard(done_chatting_mtx);
+	done_chatting = true;
 }
 
 
