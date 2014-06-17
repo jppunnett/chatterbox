@@ -36,7 +36,7 @@ class ChatterboxServer
     rescue Interrupt => e
       puts "Program interrupted. Exiting gracefully."
     ensure
-      server.close
+      @server.close
     end
 
     puts "Chatterbox server stopped"
